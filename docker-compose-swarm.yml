@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+  bot-server:
+    image: crypto/telegram-crypto-alerts:latest
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+    environment:
+      MAX_ALERTS_PER_USER: 200
+      CEX_POLLING_PERIOD: 5
+      LOCATION: global
+      USE_MONGO_DB: t
+      MONGODB_DATABASE: crypto_alerts
+      MONGODB_COLLECTION: bot_data
+    secrets:
+      - tg_alert_bot_mongodb_connection_string
+      - tg_alert_bot_telegram_bot_token
+      - tg_alert_bot_telegram_admin_user_id
+
+secrets:
+  tg_alert_bot_mongodb_connection_string:
+    external: true
+  tg_alert_bot_telegram_bot_token:
+    external: true
+  tg_alert_bot_telegram_admin_user_id:
+    external: true

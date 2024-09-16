@@ -4,8 +4,29 @@ All significant modifications to the project are recorded here.
 
 ## Table of Contents
 
+- [v3.1.4 - Released 2024-09-16](#314)
 - [v3.1.0 - Released 2024-08-14](#310)
 - [v3.0.0 - Released 2024-03-11](#300)
+
+## v3.1.4 - Released 2024-09-16 <a name="314"></a>
+
+### 💎 Release Summary
+
+Release includes many custom adaptations and fixes
+
+### 🛠️ Bugfixes/Improvements
+
+- Project structure and build/deploy process:
+  - poetry was set as a default dependency management system
+  - added poetry related changes to the Docker file
+  - added a docker compose file for the local testing
+  - added docker swarm config
+  - added a release PowerShell script
+- Bot features:
+  - added support for the underscore pair (set as default)
+  - added short command variants
+  - added pair hashtag to bot message for the quicker search
+  - customized alert structure
 
 ## v3.1.0 - Released 2024-08-14 <a name="310"></a>
 

@@ -1,22 +1,21 @@
 import os
-import json
 
-from .user_configuration import LocalUserConfiguration, MongoDBUserConfiguration
+from .config import USE_MONGO_DB, AGG_DATA_LOCATION, TELEGRAM_ADMIN_USER_ID
 from .logger import logger
-from .config import USE_MONGO_DB, AGG_DATA_LOCATION
+from .user_configuration import LocalUserConfiguration, MongoDBUserConfiguration
 
 
 def do_setup():
-    user_id = os.getenv('TELEGRAM_USER_ID')
+    admin_user_id = TELEGRAM_ADMIN_USER_ID
 
     # Set up required user files:
     try:
-        logger.info(f"Creating default bot configuration for Telegram user {user_id}...")
+        logger.info(f"Creating default bot configuration for Telegram user {admin_user_id}...")
 
         if not USE_MONGO_DB:
-            LocalUserConfiguration(user_id).whitelist_user(is_admin=True)
+            LocalUserConfiguration(admin_user_id).whitelist_user(is_admin=True)
         else:
-            MongoDBUserConfiguration(user_id).whitelist_user(is_admin=True)
+            MongoDBUserConfiguration(admin_user_id).whitelist_user(is_admin=True)
 
         # Create empty aggregate as placeholder if it doesn't already exist:
         if not os.path.isdir(os.path.dirname(AGG_DATA_LOCATION)):

@@ -5,21 +5,45 @@
 # https://docs.docker.com/engine/install/ubuntu/
 
 # Use an official Python runtime as a parent image
-FROM python:3.11-slim
+FROM python:3.11
 
-# Set the working directory in the container
-WORKDIR /app
+ARG YOUR_ENV
 
-# Copy the current directory contents into the container at /app
-COPY . /app
-# Ensure that readme is included for docker hub
-COPY README.md /app/README.md
+ENV PYTHONFAULTHANDLER=1 \
+  PYTHONUNBUFFERED=1 \
+  PYTHONHASHSEED=random \
+  PIP_NO_CACHE_DIR=off \
+  PIP_DISABLE_PIP_VERSION_CHECK=on \
+  PIP_DEFAULT_TIMEOUT=100 \
+  # Poetry's configuration:
+  POETRY_NO_INTERACTION=1 \
+  POETRY_VIRTUALENVS_CREATE=false \
+  POETRY_CACHE_DIR='/var/cache/pypoetry' \
+  POETRY_HOME='/usr/local' \
+  POETRY_VERSION=1.7.1
+  # ^^^
+  # Make sure to update it!
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --trusted-host pypi.python.org -r requirements.txt
+# System deps:
+RUN curl -sSL https://install.python-poetry.org | python3 -
+
+RUN groupadd -r puser && useradd -ms /bin/sh -g puser puser
+
+WORKDIR /home/puser/app
+COPY poetry.lock pyproject.toml README.md /home/puser/app/
+
+# Project initialization:
+RUN poetry install --only=main --no-interaction --no-ansi
+
+COPY ./src ./src
+
+RUN chown puser:puser -R /home/puser/app
+USER puser
+
+ENV USE_DOCKER True
 
 # Run the bot when the container launches
-CMD ["python3", "-m", "src"]
+CMD ["python", "-m", "src"]
 
 # ------- Docker Deployment Commands: -------
 # docker build -t telegram-crypto-alerts .

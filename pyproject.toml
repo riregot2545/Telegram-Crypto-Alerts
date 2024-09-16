@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "telegram-crypto-alerts"
+version = "3.1.5"
+description = ""
+authors = ["Harrison Schick <hschickdevs@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pytelegrambotapi = "^4.22.1"
+requests = "^2.32.3"
+python-dotenv = "^1.0.1"
+ratelimit = "^2.2.1"
+ratelimiter = "^1.2.0.post0"
+sendgrid = "^6.11.0"
+pymongo = "^4.8.0"
+pyyaml = "^6.0.2"
+get-docker-secret = "^2.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

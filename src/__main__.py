@@ -2,6 +2,7 @@ import threading
 from os import getenv
 from time import sleep
 
+from .config import TELEGRAM_BOT_TOKEN, USE_DOCKER
 from .alert_processes import CEXAlertProcess, TechnicalAlertProcess
 from .telegram import TelegramBot
 from .user_configuration import get_whitelist
@@ -12,7 +13,8 @@ from .setup import do_setup
 
 if __name__ == "__main__":
     # Process environment variables
-    handle_env()
+    if not USE_DOCKER:
+        handle_env()
 
     # Do the setup process if the bot is not set up
     if len(get_whitelist()) == 0:
@@ -25,7 +27,7 @@ if __name__ == "__main__":
         taapiio_process = TaapiioProcess(taapiio_apikey=getenv('TAAPIIO_APIKEY'))
     
     # Create the Telegram bot to listen to commands and send messages
-    telegram_bot = TelegramBot(bot_token=getenv('TELEGRAM_BOT_TOKEN'), 
+    telegram_bot = TelegramBot(bot_token=TELEGRAM_BOT_TOKEN,
                                taapiio_process=taapiio_process)
 
     # Run the TG bot in a daemon thread

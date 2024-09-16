@@ -1,14 +1,21 @@
 help - Returns a link to the documentation
 id - Get your Telegram user ID
-new_alert - Usage: Variable by indicator type. See docs (/help)
-cancel_alert - Usage: /cancel_alert TOKEN/TOKEN alert_index
+new_alert - (na) Usage: Variable by indicator type. See docs (/help)
+na - (new_alert) Usage: Variable by indicator type. See docs (/help) or simple /na BTC/USDT price above 1200
+cancel_alert - (ca) Usage: /cancel_alert TOKEN/TOKEN alert_index
+ca - (cancel_alert) Usage: /cancel_alert TOKEN/TOKEN alert_index
 indicators - Usage: /indicators
-view_alerts - Usage: /view_alerts TOKEN/TOKEN (or leave blank for all)
-get_price - Usage: /get_price TOKEN/TOKEN
+view_alerts - (va) Usage: /view_alerts TOKEN/TOKEN (or leave blank for all)
+va - (view_alerts) Usage: /view_alerts TOKEN/TOKEN (or leave blank for all)
+get_price - (gp) Usage: /get_price TOKEN/TOKEN
+gp - (get_price) Usage: /get_price TOKEN/TOKEN
 get_indicator - Usage: /get_indicator BASE/QUOTE INDICATOR TIMEFRAME PARAMS
-price_all - Usage: /price_all
-view_config - Usage: /view_config
-set_config - Usage: /setconfig SETTING=VALUE SETTING=VALUE
+price_all - (pall) Usage: /price_all
+pall - (price_all) Usage: /price_all
+view_config - (cfg) Usage: /view_config
+cfg - (view_config) Usage: /view_config
+set_config - (scfg) Usage: /setconfig SETTING=VALUE SETTING=VALUE
+scfg - (set_config) Usage: /setconfig SETTING=VALUE SETTING=VALUE
 emails - Usage: /emails VIEW/ADD/REMOVE email@email.com,email@email.com
 channels - Usage: /channels VIEW/ADD/REMOVE ID,ID,ID
 admins - Usage: /admins VIEW/ADD/REMOVE ID,ID,ID

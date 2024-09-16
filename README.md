@@ -368,6 +368,25 @@ As stated previously, the bot is designed to be easily extensible. View the curr
 
       You may need to DYOR to ensure that the parameters that you are configuring will result in a valid response.
 
+## Docker Swarm help
+
+### Docker secret management commands (cmd only!)
+
+```shell
+docker secret rm tg_alert_bot_mongodb_connection_string
+docker secret rm tg_alert_bot_telegram_bot_token
+docker secret rm tg_alert_bot_telegram_admin_user_id
+
+echo "mongo:foo.bar"| docker secret create tg_alert_bot_mongodb_connection_string -
+echo 1111:foo| docker secret create tg_alert_bot_telegram_bot_token -
+echo 111111| docker secret create tg_alert_bot_telegram_admin_user_id -
+```
+
+- Whitelist the server ip in the Mongo
+- `docker stack rm telegram-crypto-alert-swarm`
+- `docker stack deploy -c .\docker-compose-swarm.yml telegram-crypto-alert-swarm`
+- `docker service logs --follow telegram-crypto-alert-swarm_bot-server`
+
 ## Contribution
 
 _Contributions are always welcome!_

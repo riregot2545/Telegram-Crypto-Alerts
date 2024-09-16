@@ -1,8 +1,5 @@
-from os import mkdir, getcwd, getenv, listdir
-from os.path import isdir, join, dirname, abspath, isfile, exists
-from dotenv import find_dotenv, load_dotenv
-from functools import wraps
-from ratelimit import limits, sleep_and_retry
+from os import mkdir, getcwd, getenv
+from os.path import isdir
 
 from .config import *
 
@@ -60,7 +57,7 @@ def get_commands() -> dict:
 
 def get_binance_price_url() -> str:
     """Get the binance price url for the location"""
-    location = getenv('LOCATION')
+    location = LOCATION
     assert location in BINANCE_LOCATIONS, f"Location must be in {BINANCE_LOCATIONS} for the Binance exchange."
     
     if location.lower() == 'us':

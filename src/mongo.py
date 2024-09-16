@@ -1,22 +1,19 @@
 from dotenv import find_dotenv, load_dotenv
-from os import getenv
-
 from pymongo import MongoClient
+
+from .config import MONGODB_CONNECTION_STRING, MONGODB_DATABASE, MONGODB_COLLECTION
 
 
 class MongoDBConnection(MongoClient):
     """LOADS CONNECTION VARIABLES FROM .ENV FILE - STORE CREDENTIALS THERE"""
     def __init__(self):
-        envpath = find_dotenv(raise_error_if_not_found=True, usecwd=True)
-        load_dotenv(dotenv_path=envpath)
-
-        cxn_string = getenv("MONGODB_CONNECTION_STRING")
+        cxn_string = MONGODB_CONNECTION_STRING
         if cxn_string is None:
             raise ValueError(f"Missing MongoDB connection string environment variable (MONGODB_CONNECTION_STRING)")
-        database = getenv("MONGODB_DATABASE")
+        database = MONGODB_DATABASE
         if database is None:
             raise ValueError(f"Missing MongoDB database environment variable (MONGODB_DATABASE)")
-        collection = getenv("MONGODB_COLLECTION")
+        collection = MONGODB_COLLECTION
         if collection is None:
             raise ValueError(f"Missing MongoDB database collection environment variable (MONGODB_COLLECTION)")
 

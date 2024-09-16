@@ -1,18 +1,17 @@
 import time
 from datetime import datetime
 from typing import Union
-from os import getenv
 
-from .logger import logger
-from .user_configuration import LocalUserConfiguration, MongoDBUserConfiguration, get_whitelist
-from .utils import get_logfile, get_help_command, get_commands, get_binance_price_url
-from .config import *
-from .indicators import TADatabaseClient, TaapiioProcess
-from .models import TechnicalAlert, CEXAlert
-
-from telebot import TeleBot, types
 import requests
 from requests.exceptions import ReadTimeout
+from telebot import TeleBot, types
+
+from .config import *
+from .indicators import TADatabaseClient, TaapiioProcess
+from .logger import logger
+from .models import TechnicalAlert, CEXAlert
+from .user_configuration import LocalUserConfiguration, MongoDBUserConfiguration, get_whitelist
+from .utils import get_logfile, get_help_command, get_commands, get_binance_price_url
 
 BaseConfig = LocalUserConfiguration if not USE_MONGO_DB else MongoDBUserConfiguration
 
@@ -45,7 +44,7 @@ class TelegramBot(TeleBot):
         def on_help(message):
             self.reply_to(message, get_help_command())
 
-        @self.message_handler(commands=['new_alert'])
+        @self.message_handler(commands=['new_alert', 'na'])
         @self.is_whitelisted
         def on_new_alert(message):
             """/new_alert PAIR/PAIR INDICATOR TARGET optional_ENTRY_PRICE"""
@@ -74,8 +73,9 @@ class TelegramBot(TeleBot):
                     # Verify indicator:
                     indicator_instance = self.parse_technical_indicator_message(message.text)
                     if indicator_instance is None:
-                        self.reply_to(message, "Could not match passed parameters to valid technical indicator in the database.\n"
-                                               "Please check your formatting with `/indicators`", parse_mode="Markdown")
+                        self.reply_to(message,
+                                      "Could not match passed parameters to valid technical indicator in the database.\n"
+                                      "Please check your formatting with `/indicators`", parse_mode="Markdown")
                         return
 
                     # Verify that no errors are returned by the indicator on taapi.io:
@@ -123,7 +123,8 @@ class TelegramBot(TeleBot):
                 if indicator_instance.type == "s":
                     # Handle simple indicator:
                     comparison = msg[2].upper()
-                    target = float(msg[3].strip()) if comparison not in ["PCTCHG", "24HRCHG"] else float(msg[3].strip()) / 100
+                    target = float(msg[3].strip()) if comparison not in ["PCTCHG", "24HRCHG"] else float(
+                        msg[3].strip()) / 100
                     if len(msg) > 4:
                         entry_price = float(msg[4])
                     else:
@@ -155,19 +156,20 @@ class TelegramBot(TeleBot):
                              "output_value": output_value,
                              "target": target,
                              "alerted": False}
+                pair_std_key = pair.replace("/", "_")
 
-                if pair in alerts_db.keys():
-                    alerts_db[pair].append(alert)
+                if pair_std_key in alerts_db.keys():
+                    alerts_db[pair_std_key].append(alert)
                 else:
-                    alerts_db[pair] = [alert]
+                    alerts_db[pair_std_key] = [alert]
                 configuration.update_alerts(alerts_db)
-                self.reply_to(message, f'Successfully activated new alert!')
+                self.reply_to(message, f'Successfully activated new alert for {pair}!\n\n #{pair_std_key}')
             except Exception as exc:
                 self.reply_to(message,
                               f'An error occurred:\n{exc}')
                 return
 
-        @self.message_handler(commands=['cancel_alert'])
+        @self.message_handler(commands=['cancel_alert', 'ca'])
         @self.is_whitelisted
         def on_cancel_alert(message):
             """/cancel_alert PAIR/PAIR alert_index"""
@@ -195,7 +197,7 @@ class TelegramBot(TeleBot):
             except Exception as exc:
                 self.reply_to(message, f'An error occurred when trying to cancel the alert:\n{exc}')
 
-        @self.message_handler(commands=['view_alerts'])
+        @self.message_handler(commands=['view_alerts', 'va'])
         @self.is_whitelisted
         def on_view_alerts(message):
             """/view_alerts PAIR (<- optional)"""
@@ -224,7 +226,7 @@ class TelegramBot(TeleBot):
                     output += "\n\n"
             self.reply_to(message, output if len(output) > 0 else "Found 0 matching alerts.", parse_mode="HTML")
 
-        @self.message_handler(commands=['get_price'])
+        @self.message_handler(commands=['get_price', 'gp'])
         @self.is_whitelisted
         def on_get_price(message):
             """/get_price PAIR/PAIR"""
@@ -269,7 +271,7 @@ class TelegramBot(TeleBot):
                 msg += f"<b>{k}:</b> {v}\n"
             self.reply_to(message, msg, parse_mode="HTML")
 
-        @self.message_handler(commands=['price_all'])
+        @self.message_handler(commands=['price_all', 'pall'])
         @self.is_whitelisted
         def on_price_all(message):
             """/price_all - Gets the price of all tokens with alerts set"""
@@ -306,7 +308,7 @@ class TelegramBot(TeleBot):
 
             self.reply_to(message, output, parse_mode="HTML", disable_web_page_preview=True)
 
-        @self.message_handler(commands=['view_config'])
+        @self.message_handler(commands=['view_config', 'cfg'])
         @self.is_whitelisted
         def on_view_config(message):
             """Returns the current configuration of the bot (used as reference for /set_config)"""
@@ -324,7 +326,7 @@ class TelegramBot(TeleBot):
                 logger.exception('Could not call /view_config', exc_info=exc)
                 self.reply_to(message, str(exc))
 
-        @self.message_handler(commands=['set_config'])
+        @self.message_handler(commands=['set_config', 'scfg'])
         @self.is_whitelisted
         def on_set_config(message):
             """Used to change configuration variables of the bot"""
@@ -406,6 +408,7 @@ class TelegramBot(TeleBot):
                 self.reply_to(message, f"An unexpected error occurred - {exc}")
 
         """------ ADMINISTRATOR COMMANDS: ------"""
+
         @self.message_handler(commands=['whitelist'])
         @self.is_admin
         def on_whitelist(message):
@@ -509,6 +512,7 @@ class TelegramBot(TeleBot):
 
         :param func: PyTelegramBotAPI message handler function, with the 'message' class as the first argument
         """
+
         def wrapper(*args, **kw):
             message = args[0]
             if str(message.from_user.id) in get_whitelist():
@@ -517,6 +521,7 @@ class TelegramBot(TeleBot):
                 self.reply_to(message,
                               f"{message.from_user.username} ({message.from_user.id}) is not whitelisted")
                 return False
+
         return wrapper
 
     def is_admin(self, func):
@@ -525,6 +530,7 @@ class TelegramBot(TeleBot):
 
         :param func: PyTelegramBotAPI message handler function, with the 'message' class as the first argument
         """
+
         def wrapper(*args, **kw):
             message = args[0]
             if BaseConfig(str(message.from_user.id)).admin_status():
@@ -533,11 +539,17 @@ class TelegramBot(TeleBot):
                 self.reply_to(message,
                               f"{message.from_user.username} ({message.from_user.id}) is not an admin")
                 return False
+
         return wrapper
 
     def get_latest_binance_price(self, pair):
         try:
-            response = requests.get(self.binance_price_endpoint.format(pair.replace("/", ""), BINANCE_TIMEFRAMES[0]))
+            if "/" in pair:
+                response = requests.get(
+                    self.binance_price_endpoint.format(pair.replace("/", ""), BINANCE_TIMEFRAMES[0]))
+            else:
+                response = requests.get(
+                    self.binance_price_endpoint.format(pair.replace("_", ""), BINANCE_TIMEFRAMES[0]))
             # response = requests.get(f'https://api.binance.com/api/v3/ticker/price?symbol={pair.replace("/", "")}')
             try:
                 return round(float(response.json()['lastPrice']), 3)

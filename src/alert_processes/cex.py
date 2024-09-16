@@ -103,7 +103,8 @@ class CEXAlertProcess(BaseAlertProcess):
         # indicator = alert["indicator"]
         comparison = alert['comparison']
         if pair_price is None:
-            pair_price = self.get_latest_price(token_pair=pair.replace("/", ""))
+            pair_price = self.get_latest_price(
+                token_pair=(pair.replace("/", "") if "/" in pair else pair.replace("_", "")))
 
         if comparison == 'PCTCHG':
             entry = alert['entry']
@@ -114,7 +115,9 @@ class CEXAlertProcess(BaseAlertProcess):
                 pct_chg = ((entry - pair_price) / entry) * 100
                 return True, pct_chg, f"{pair} DOWN {pct_chg:.1f}% FROM {entry} AT {pair_price}"
         elif comparison == '24HRCHG':
-            pct_change = self.get_pct_change(pair.replace("/", ""), window="1d")
+            pct_change = self.get_pct_change(
+                token_pair=(pair.replace("/", "") if "/" in pair else pair.replace("_", "")),
+                window="1d")
             if abs(pct_change) >= alert['target']:
                 return True, pct_change, f"{pair} 24HR CHANGE {pct_change:.1f}% AT {pair_price}"
         elif comparison == 'ABOVE':
@@ -151,7 +154,8 @@ class CEXAlertProcess(BaseAlertProcess):
                 time.sleep(retry_delay)
                 return self.get_latest_price(token_pair, _try=_try + 1)
 
-    def get_pct_change(self, token_pair: str, window: str, retry_delay: int = 2, maximum_retries: int = 5, _try: int = 1) -> float:
+    def get_pct_change(self, token_pair: str, window: str, retry_delay: int = 2, maximum_retries: int = 5,
+                       _try: int = 1) -> float:
         """
         Make a request to Binance API and return the 24 hour % change for a token pair
 
@@ -177,7 +181,7 @@ class CEXAlertProcess(BaseAlertProcess):
             else:
                 time.sleep(retry_delay)
                 return self.get_pct_change(token_pair, window, _try=_try + 1)
-    
+
     def tg_alert(self, post: str, channel_ids: list[str], pair: str = None) -> tuple:
         """
         Sends the post (price alert) to each registered user of the Telegram bot
@@ -188,22 +192,24 @@ class CEXAlertProcess(BaseAlertProcess):
 
         :return: Tuple = ([successful group ids], [unsuccessful group ids])
         """
-        post = f"🔔 <b>CEX ALERT:</b> 🔔\n\n" + post
+        post = f"🔔 <b>CRYPTO LISTENER ALERT</b> 🔔\n\n" + post
         if pair:
             pair_fmt = pair.replace('/', '_')
             post += f"\n\n<a href='https://www.binance.com/en/trade/{pair_fmt}?type=spot'><b>View {pair} Chart</b></a>"
+            post += f"\n\n<b>&#35;{pair_fmt}</b>"
         output = ([], [])
         for g_id in channel_ids:
             try:
                 # requests.post(url=f'https://api.telegram.org/bot{self.tg_bot_token}/sendMessage',
                 #               params={'chat_id': g_id, 'text': header_str + post, "parse_mode": "HTML"})
-                self.telegram_bot.send_message(chat_id=g_id, text=post, parse_mode="HTML", disable_web_page_preview=True)
+                self.telegram_bot.send_message(chat_id=g_id, text=post, parse_mode="HTML",
+                                               disable_web_page_preview=True)
                 output[0].append(g_id)
             except:
                 output[1].append(g_id)
 
         return output
-    
+
     def run(self):
         """
         Start the CEX alert process and run in an infinite loop
@@ -219,5 +225,6 @@ class CEXAlertProcess(BaseAlertProcess):
             logger.critical("KeyboardInterrupt detected. Exiting...")
             exit(0)
         except Exception as exc:
-            logger.critical("An error has occurred in the CEX alert process. Trying again in 15 seconds...", exc_info=exc)
+            logger.critical("An error has occurred in the CEX alert process. Trying again in 15 seconds...",
+                            exc_info=exc)
             time.sleep(15)
