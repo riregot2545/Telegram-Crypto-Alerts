@@ -3,16 +3,17 @@ from datetime import datetime
 import os
 from functools import wraps
 
+from telebot import TeleBot
+
 from .base import BaseAlertProcess
 from ..user_configuration import LocalUserConfiguration, MongoDBUserConfiguration, get_whitelist
 from ..logger import logger
 from ..config import *
 from ..indicators import TADatabaseClient, TAAggregateClient
-from ..telegram import TelegramBot
 
 
 class TechnicalAlertProcess(BaseAlertProcess):
-    def __init__(self, telegram_bot: TelegramBot):
+    def __init__(self, telegram_bot: TeleBot):
         super().__init__(telegram_bot)
         self.polling = False  # Temporary variable to manage alerts
         self.ta_db = TADatabaseClient().fetch_ref()

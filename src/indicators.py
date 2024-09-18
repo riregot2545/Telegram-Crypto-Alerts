@@ -31,6 +31,7 @@ from ratelimit import limits, sleep_and_retry
 
 class TADatabaseClient:
     """This client should handle the cross-process operations of the technical analysis indicators database"""
+
     def build_ta_db(self):
         pass
 
@@ -69,7 +70,7 @@ class TADatabaseClient:
         self.dump_ref(db)
         print(f"{name} ({indicator_id}) indicator added to TA database.")
 
-    def get_indicator(self, _id: str, key = None):
+    def get_indicator(self, _id: str, key=None):
         """Returns the indicator data from the database"""
         try:
             if key is not None:
@@ -183,7 +184,8 @@ class TAAggregateClient:
 
     def format_alert_for_match(self, alert: dict):
         formatted_alert = {"indicator": alert['indicator'].lower()}
-        for param, _, default_value in self.indicators_db_cli.get_indicator(_id=alert['indicator'].upper(), key="params"):
+        for param, _, default_value in self.indicators_db_cli.get_indicator(_id=alert['indicator'].upper(),
+                                                                            key="params"):
             try:
                 formatted_alert[param] = alert["params"][param]
             except KeyError:
@@ -217,6 +219,7 @@ class TAAggregateClient:
 
 class TaapiioProcess:
     """Taapi.io process should be run in a separate thread to allow for sleeping between API calls"""
+
     def __init__(self, taapiio_apikey: str, telegram_bot_token: str = None):
         self.apikey = taapiio_apikey
         self.last_call = 0  # Implemented instead of the ratelimit package solution to solve the buffer issue
@@ -234,10 +237,10 @@ class TaapiioProcess:
         Free API key limit is 1 call every 15 seconds, we use +1 to add a safety buffer
         """
         if r_type == "GET":
-            return requests.get(endpoint.format(api_key=self.apikey), params=params).json()
+            return requests.get(endpoint.format(api_key=self.apikey), params=params, timeout=10).json()
         elif r_type == "POST":
             logger.info(f"Sending bulk query to API: {params}")
-            return requests.post(endpoint, json=params).json()
+            return requests.post(endpoint, json=params, timeout=10).json()
 
     def mainloop(self):
         """
@@ -308,7 +311,7 @@ class TaapiioProcess:
 
             if admin:
                 requests.post(url=f'https://api.telegram.org/bot{self.tg_bot_token}/sendMessage',
-                              params={'chat_id': user, 'text': message})
+                              params={'chat_id': user, 'text': message}, timeout=10)
 
     def run(self) -> None:
         restart_period = 15

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from ..telegram import TelegramBot
+from telebot import TeleBot
 
 
 class BaseAlertProcess(ABC):
@@ -11,7 +11,8 @@ class BaseAlertProcess(ABC):
     
     This functionality allows standardized creation of new alert types/assets when needed by facilitating polymorphism.
     """
-    def __init__(self, telegram_bot: TelegramBot):
+
+    def __init__(self, telegram_bot: TeleBot):
         self.telegram_bot = telegram_bot
 
     @abstractmethod
