@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "telegram-crypto-alerts"
-version = "3.1.13"
+version = "3.1.14"
 description = ""
 authors = ["Harrison Schick <hschickdevs@gmail.com>"]
 readme = "README.md"

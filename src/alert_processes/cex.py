@@ -48,11 +48,12 @@ class CEXAlertProcess(BaseAlertProcess):
                     continue
 
                 if alert['type'] == "s":
-                    condition, value, post_string = self.get_simple_indicator(pair, alert)
+                    alert_required, remove_required, value, post_string = self.get_simple_indicator(pair, alert)
 
-                    if condition:  # If there is a condition satisfied
+                    if alert_required:  # If there is a alert_required satisfied
                         post_queue.append((post_string, pair))
-                        alert['alerted'] = True
+                        if remove_required:
+                            alert['alerted'] = True
                         do_update = True  # Since the alert needs to be updated in the database, signal do_update
 
             for item in remove_queue:
@@ -82,7 +83,7 @@ class CEXAlertProcess(BaseAlertProcess):
             logger.info(f"Poll alerts for user {user}")
             self.poll_user_alerts(tg_user_id=user)
 
-    def get_simple_indicator(self, pair: str, alert: dict, pair_price: float = None) -> tuple[bool, float, str]:
+    def get_simple_indicator(self, pair: str, alert: dict, pair_price: float = None) -> tuple[bool, bool, float, str]:
         """
         Accounts for the 3 following simple price movement indicators:
         PCTCHG - Percent change in the price
@@ -110,24 +111,47 @@ class CEXAlertProcess(BaseAlertProcess):
             entry = alert['entry']
             if pair_price > (entry * (1 + target)):
                 pct_chg = ((pair_price - entry) / entry) * 100
-                return True, pct_chg, f"{pair} UP {pct_chg:.1f}% FROM {entry} AT {pair_price}"
+                return True, True, pct_chg, f"{pair} UP {pct_chg:.1f}% FROM {entry} AT {pair_price}"
             elif pair_price < (entry * (1 - target)):
                 pct_chg = ((entry - pair_price) / entry) * 100
-                return True, pct_chg, f"{pair} DOWN {pct_chg:.1f}% FROM {entry} AT {pair_price}"
+                return True, True, pct_chg, f"{pair} DOWN {pct_chg:.1f}% FROM {entry} AT {pair_price}"
         elif comparison == '24HRCHG':
             pct_change = self.get_pct_change(
                 token_pair=(pair.replace("/", "") if "/" in pair else pair.replace("_", "")),
                 window="1d")
             if abs(pct_change) >= alert['target']:
-                return True, pct_change, f"{pair} 24HR CHANGE {pct_change:.1f}% AT {pair_price}"
+                return True, True, pct_change, f"{pair} 24HR CHANGE {pct_change:.1f}% AT {pair_price}"
         elif comparison == 'ABOVE':
             if pair_price > target:
-                return True, pair_price, f"{pair} ABOVE {target} TARGET AT {pair_price}"
+                alert_str = f"{pair} <b>ABOVE</b> {target} \nTARGET AT <code>{pair_price}</code>"
+                command_str = f"<code>/na {pair} price above {target}</code>"
+                return True, True, pair_price, f"{alert_str} \n\n{command_str}"
         elif comparison == 'BELOW':
             if pair_price < target:
-                return True, pair_price, f"{pair} BELOW {target} TARGET AT {pair_price}"
+                alert_str = f"{pair} <b>BELOW</b> {target} \nTARGET AT <code>{pair_price}</code>"
+                command_str = f"<code>/na {pair} price below {target}</code>"
+                return True, True, pair_price, f"{alert_str} \n\n{command_str}"
+        elif comparison == 'IN_RANGE':
+            # move direction insensitive
+            lower_bound = alert['range_lower_bound']
+            upper_bound = alert['range_upper_bound']
+            entered_range = alert.get('entered_range')
 
-        return False, pair_price, ""
+            command_str = f"<code>/na {pair} price in_range {target} {lower_bound} {upper_bound}</code>"
+            if lower_bound <= pair_price < upper_bound and entered_range is None:
+                alert['entered_range'] = True
+                alert_str = f"{pair} <b>ENTERED</b> range with bounds: ({lower_bound} / {upper_bound}) \nTarget value at: <code>{pair_price}</code>"
+                return True, False, pair_price, f"{alert_str} \n\n{command_str}"
+            elif pair_price < lower_bound and entered_range:
+                alert['entered_range'] = False
+                alert_str = f"{pair} <b>EXITED</b> range and BELOW lower range bound: {lower_bound} \nTarget value at: <code>{pair_price}</code>"
+                return True, True, pair_price, f"{alert_str} \n\n{command_str}"
+            elif pair_price > upper_bound and entered_range:
+                alert['entered_range'] = False
+                alert_str = f"{pair} <b>EXITED</b> range and ABOVE upper range bound: {upper_bound} \nTarget value at: <code>{pair_price}</code>"
+                return True, True, pair_price, f"{alert_str} \n\n{command_str}"
+
+        return False, False, pair_price, ""
 
     def get_latest_price(self, token_pair: str, retry_delay: int = 2, maximum_retries: int = 5, _try: int = 1) -> float:
         """
@@ -198,7 +222,7 @@ class CEXAlertProcess(BaseAlertProcess):
         if pair:
             pair_fmt = pair.replace('/', '_')
             post += f"\n\n<a href='https://www.binance.com/en/trade/{pair_fmt}?type=spot'><b>View {pair} Chart</b></a>"
-            post += f"\n\n<b>&#35;{pair_fmt}</b>"
+            post += f"\n\n<b>&#35;{pair_fmt} &#35;{pair_fmt}_DONE</b>"
         output = ([], [])
         for g_id in channel_ids:
             for i in range(1, 3):

@@ -274,7 +274,7 @@ class TelegramCryptoBotWorker(Thread):
                 comparison = msg[2].upper()
                 target = float(msg[3].strip()) if comparison not in ["PCTCHG", "24HRCHG"] else float(
                     msg[3].strip()) / 100
-                if len(msg) > 4:
+                if len(msg) == 5:
                     entry_price = float(msg[4])
                 else:
                     try:
@@ -285,11 +285,19 @@ class TelegramCryptoBotWorker(Thread):
                                                    "format: TOKEN1/TOKEN2")
                         return
 
+                range_lower_bound = None
+                range_upper_bound = None
+                if len(msg) == 6:
+                    range_lower_bound = float(msg[4])
+                    range_upper_bound = float(msg[5])
+
                 alert = {"type": indicator_instance.type,
                          "indicator": indicator_instance.indicator.upper(),
                          "comparison": comparison,
                          "entry": entry_price,
                          "target": target,
+                         "range_lower_bound": range_lower_bound,
+                         "range_upper_bound": range_upper_bound,
                          "params": indicator_instance.params,
                          "alerted": False}
             else:
@@ -309,6 +317,7 @@ class TelegramCryptoBotWorker(Thread):
 
             if pair_std_key in alerts_db.keys():
                 alerts_db[pair_std_key].append(alert)
+                alerts_db[pair_std_key].sort(key=lambda x: x['target'], reverse=True)
             else:
                 alerts_db[pair_std_key] = [alert]
             configuration.update_alerts(alerts_db)
@@ -323,20 +332,29 @@ class TelegramCryptoBotWorker(Thread):
         try:
             pair, alert_index = self.split_message(message.text)
             pair = pair.upper()
-            alert_index = int(alert_index)
+            clear_all_alerts = False
+            if alert_index == 'ALL':
+                clear_all_alerts = True
+            else:
+                alert_index = int(alert_index)
         except Exception as exc:
             self.bot.reply_to(message,
                               'Invalid message formatting. Please ensure that your message follows this format:\n' +
-                              '/cancel_alert TOKEN1/TOKEN2 alert_index')
+                              '/cancel_alert TOKEN1/TOKEN2 alert_index | ALL')
             return
 
         try:
             configuration = BaseConfig(str(message.from_user.id))
             alerts_db = configuration.load_alerts()
-            rm_alert = alerts_db[pair].pop(alert_index - 1)
+            if clear_all_alerts:
+                alerts_db[pair].clear()
+                rm_alert = ''
+            else:
+                rm_alert = alerts_db[pair].pop(alert_index - 1)
+
             all_rm = False
             if len(alerts_db[pair]) == 0:
-                rm_pair = alerts_db.pop(pair)
+                alerts_db.pop(pair)
                 all_rm = True
             configuration.update_alerts(alerts_db)
             self.bot.reply_to(message, f'Successfully Canceled {pair} Alert:\n'
@@ -364,9 +382,25 @@ class TelegramCryptoBotWorker(Thread):
                     if "interval" in alert.keys():
                         output += f"{alert['interval']} "
                     output += f"{alert['comparison']} "
-                    output += f"{str(alert['target'] * 100) + '% FROM ' + str(alert['entry']) if alert['comparison'] in ['PCTCHG', '24HRCHG'] else alert['target']} "
+
+                    if alert['comparison'] in ['PCTCHG', '24HRCHG']:
+                        output += f"{str(alert['target'] * 100) + '% FROM ' + str(alert['entry'])}"
+                    elif alert['comparison'] in ['IN_RANGE']:
+                        output += f"({str(alert['range_lower_bound'])} / {str(alert['range_upper_bound'])}) with base as {str(alert['target'])}"
+                    else:
+                        output += str(alert['target'])
+
                     if "params" in alert.keys() and alert['params'] is not None and len(alert['params']) > 0:
                         output += f"with params: {alert['params']}"
+
+                output += "\n\n"
+
+        output += "<b>Range Alerts In Progress:</b>"
+        for ticker in alerts_db.keys():
+            if ticker == alerts_pair or alerts_pair == "ALL":
+                for index, alert in enumerate(alerts_db[ticker]):
+                    if alert['comparison'] in ['IN_RANGE'] and alert.get('entered_range') is not None:
+                        output += f"<b>{ticker}</b>: ({str(alert['range_lower_bound'])} / {str(alert['range_upper_bound'])}) with base as {str(alert['target'])}\n"
 
                 output += "\n\n"
         self.bot.reply_to(message, output if len(output) > 0 else "Found 0 matching alerts.", parse_mode="HTML")

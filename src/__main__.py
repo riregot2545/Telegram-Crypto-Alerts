@@ -2,7 +2,7 @@ import threading
 from os import getenv
 from time import sleep
 
-from src.telegram_bot import TelegramCryptoBotWorker
+from .telegram_bot import TelegramCryptoBotWorker
 from .alert_processes import CEXAlertProcess, TechnicalAlertProcess
 from .config import USE_DOCKER
 from .indicators import TaapiioProcess
